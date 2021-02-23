@@ -1,0 +1,25 @@
+name: CI
+on:
+  push:
+    branches: [ "jl/metadata-gh-actions" ]
+  pull_request:
+    branches: [ "jl/metadata-gh-actions" ]
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2.3.4
+      - name: Nix
+        uses: cachix/install-nix-action@v12
+      - uses: jwalton/gh-find-current-pr@v1.0.3
+        id: findPr
+      - name: Validate
+        if: success() && steps.findPr.outputs.number
+        run: |
+            nix-store -r /nix/store/v533kmzd0nzfh0l7mldrly4rhp7ah16a-metadata-validator-exe-metadata-validator-0.1.0.0 --option binary-caches "https://hydra.iohk.io" --option trusted-public-keys "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ="
+            echo "/nix/store/v533kmzd0nzfh0l7mldrly4rhp7ah16a-metadata-validator-exe-metadata-validator-0.1.0.0/bin/metadata-validator input-output-hk metadata-registry-testnet ${PR} --no-auth"
+            /nix/store/v533kmzd0nzfh0l7mldrly4rhp7ah16a-metadata-validator-exe-metadata-validator-0.1.0.0/bin/metadata-validator input-output-hk metadata-registry-testnet ${PR} --no-auth
+        env:
+          NIX_PATH: "nixpkgs=channel:nixos-20.09"
+          PR: ${{ steps.findPr.outputs.pr }}
